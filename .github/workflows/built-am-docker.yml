@@ -8,6 +8,7 @@ name: Build and Publish Docker Image
 on:
   workflow_dispatch:
 
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -33,7 +34,7 @@ jobs:
         git clone https://github.com/WorldObservationLog/AppleMusicDecrypt.git
         curl -sSL https://install.python-poetry.org | python3 -
         echo "$HOME/.local/bin" >> $GITHUB_PATH  
-        
+
         cd AppleMusicDecrypt
         sed -i 's/^python = "[^"]*"/python = ">=3.11,<3.14"/' pyproject.toml
         poetry add --group dev pyinstaller
@@ -42,12 +43,12 @@ jobs:
         poetry run pyinstaller -F -n login $(pwd)/tools/login.py
         poetry run pyinstaller -F -n logout $(pwd)/tools/logout.py
         echo "当前工作目录: $(pwd)"
-        mv $(pwd)/dist/AMDecrypt ${GITHUB_WORKSPACE}
-        mv $(pwd)/dist/login ${GITHUB_WORKSPACE}
-        mv $(pwd)/dist/logout ${GITHUB_WORKSPACE}
-        mv $(pwd)/config.example.toml ${GITHUB_WORKSPACE}
-        ls -l ${GITHUB_WORKSPACE}
-
+        mkdir -p ${GITHUB_WORKSPACE}/build
+        mv $(pwd)/dist/AMDecrypt ${GITHUB_WORKSPACE}/build-amd64/
+        mv $(pwd)/dist/login ${GITHUB_WORKSPACE}/build-amd64/
+        mv $(pwd)/dist/logout ${GITHUB_WORKSPACE}/build-amd64/
+        mv $(pwd)/config.example.toml ${GITHUB_WORKSPACE}/build-amd64/
+        ls -l ${GITHUB_WORKSPACE}/build-amd64
 
     - name: git_wrapper-manager
       run: |
@@ -57,8 +58,8 @@ jobs:
         cd wrapper-manager
         GOOS=linux GOARCH=amd64 go build -o wm
         #GOOS=linux GOARCH=amd64 go build -o wm
-        mv wm ${GITHUB_WORKSPACE} 
-        ls -l ${GITHUB_WORKSPACE}/
+        mv wm ${GITHUB_WORKSPACE}/build-amd64/
+        ls -l ${GITHUB_WORKSPACE}/build-amd64/
 
     - name: git_MP4box
       run: |
@@ -68,8 +69,8 @@ jobs:
         ./configure --static-bin
         make
         ls -l ./bin/gcc
-        mv ./bin/gcc/MP4Box ${GITHUB_WORKSPACE}
-        ls -l ${GITHUB_WORKSPACE}
+        mv ./bin/gcc/MP4Box ${GITHUB_WORKSPACE}/build-amd64/
+        ls -l ${GITHUB_WORKSPACE}/build-amd64
 
     - name: git_mp4edit
       run: |
@@ -80,46 +81,11 @@ jobs:
         cmake -DCMAKE_BUILD_TYPE=Release ..
         make -j$(nproc)
         #$PREFIX make install
-        mv ./bin/mp4edit ${GITHUB_WORKSPACE}
-        ls -l ${GITHUB_WORKSPACE}
+        find . -name mp4edit -exec mv {} ${GITHUB_WORKSPACE}/build-amd64 \;
+        ls -l ${GITHUB_WORKSPACE}/build-amd64
 
-
-
-    
-    - name: Set up QEMU
-      # QEMU 是用于在一种架构上模拟另一种架构的工具  
-      # Docker BuildKit 使用 QEMU 来实现跨平台构建  
-      uses: docker/setup-qemu-action@v2
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
-
-    - name: Login to Docker Hub
-      uses: docker/login-action@v2
+    - name: Upload build-amd64 artifacts
+      uses: actions/upload-artifact@v3
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-
-    - name: Login to GitHub Container Registry
-      uses: docker/login-action@v2
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    # 设置环境变量以包含时间戳  
-    - name: Get current date
-      run: export TZ='Asia/Shanghai'&& echo "BUILD_DATE=$(date +'%Y%m%d%H%M')" >> $GITHUB_ENV
-
-    # 构建并推送 Docker 镜像  
-    - name: Build and push Docker images
-      uses: docker/build-push-action@v3
-      with:
-        context: .
-        platforms: linux/amd64
-        push: true
-        tags: |
-          ${{ secrets.DOCKER_USERNAME }}/AM-docker:latest
-          ${{ secrets.DOCKER_USERNAME }}/AM-docker:${{ env.BUILD_DATE }}
-          ghcr.io/${{ github.repository_owner }}/AM-docker:latest
-          ghcr.io/${{ github.repository_owner }}/AM-docker:${{ env.BUILD_DATE }}
+        name: am-docker-build-amd64
+        path: ${{ github.workspace }}/build-amd64
