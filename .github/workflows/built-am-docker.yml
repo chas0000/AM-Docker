@@ -1,0 +1,103 @@
+name: Build and Publish Docker Image
+
+#on:
+#  push:
+#    branches:
+#    - main
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      artifact-path: build
+    steps:
+    - name: Setup tmate session
+      uses: mxschmitt/action-tmate@v3   
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: git_amdl
+      run: |
+        echo "当前工作目录: $(pwd)"
+        apt update&&apt install git wget tar golang -y
+        # wget https://go.dev/dl/go1.23.1.linux-amd64.tar.gz
+        # tar -C /usr/local -xzf go1.23.1.linux-amd64.tar.gz
+        # export PATH=/usr/local/go/bin:$PATH
+        git clone https://github.com/zhaarey/apple-music-downloader.git
+        cd apple-music-downloader
+        # sed -i -E 's/^go ([0-9]+\.[0-9]+)\.[0-9]+$/go \1/' go.mod
+        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o dl main.go
+        echo "当前工作目录: $(pwd)"
+        mv dl ${GITHUB_WORKSPACE}
+        mv config.yaml ${GITHUB_WORKSPACE}
+        ls -l ${GITHUB_WORKSPACE}
+
+    - name: 下载ttyd
+      run: |
+        apt update && apt install wget curl -y
+        wget $(curl -s https://api.github.com/repos/tsl0922/ttyd/releases/latest | grep browser_download_url | grep 'ttyd.x86_64' | cut -d '"' -f 4)
+        cp ttyd.x86_64 ${{ github.workspace }}/ttyd
+        ls -al ${{ github.workspace }}  
+    - name: git_wrapper
+      run: |
+        echo "当前工作目录: $(pwd)"
+        apt update&&apt install wget curl -y
+        latest_tag=$(curl -s https://api.github.com/repos/WorldObservationLog/wrapper/releases/latest | grep '"tag_name":' | cut -d '"' -f 4)
+        download_url="https://github.com/WorldObservationLog/wrapper/releases/download/${latest_tag}/${latest_tag}.zip"
+        wget -O wrapper_latest.zip "$download_url"
+        #wget "https://github.com/zhaarey/wrapper/releases/download/linux.V2/wrapper.x86_64.tar.gz"
+        mkdir ${GITHUB_WORKSPACE}/wrapper
+        #tar -xzf wrapper.x86_64.tar.gz -C ${GITHUB_WORKSPACE}/wrapper
+        unzip wrapper_latest.zip -d ${GITHUB_WORKSPACE}/wrapper
+        ls -l ${GITHUB_WORKSPACE}/
+        ls -l ${GITHUB_WORKSPACE}/wrapper
+    - name: git_MP4box
+      run: |
+        apt update && apt install build-essential pkg-config g++ git cmake yasm zlib1g-dev -y
+        git clone https://github.com/gpac/gpac.git gpac_public
+        cd gpac_public
+        ./configure --static-bin
+        make
+        ls -l ./bin/gcc
+        mv ./bin/gcc/MP4Box ${GITHUB_WORKSPACE}
+        ls -l ${GITHUB_WORKSPACE}
+    
+    - name: Set up QEMU
+      # QEMU 是用于在一种架构上模拟另一种架构的工具  
+      # Docker BuildKit 使用 QEMU 来实现跨平台构建  
+      uses: docker/setup-qemu-action@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    # 设置环境变量以包含时间戳  
+    - name: Get current date
+      run: export TZ='Asia/Shanghai'&& echo "BUILD_DATE=$(date +'%Y%m%d%H%M')" >> $GITHUB_ENV
+
+    # 构建并推送 Docker 镜像  
+    - name: Build and push Docker images
+      uses: docker/build-push-action@v3
+      with:
+        context: .
+        platforms: linux/amd64
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/wrapper-test:latest
+          ${{ secrets.DOCKER_USERNAME }}/wrapper-test:${{ env.BUILD_DATE }}
+          ghcr.io/${{ github.repository_owner }}/wrapper-test:latest
+          ghcr.io/${{ github.repository_owner }}/wrapper-test:${{ env.BUILD_DATE }}
