@@ -39,13 +39,13 @@ jobs:
         poetry add --group dev pyinstaller
         poetry install
         poetry run pyinstaller -F -n AMDecrypt main.py
-        poetry run pyinstaller -F -n login ./tools/login.py
-        poetry run pyinstaller -F -n logout ./tools/logout.py
+        poetry run pyinstaller -F -n login $(pwd)/tools/login.py
+        poetry run pyinstaller -F -n logout $(pwd)/tools/logout.py
         echo "当前工作目录: $(pwd)"
-        mv AMDecrypt ${GITHUB_WORKSPACE}
-        mv login ${GITHUB_WORKSPACE}
-        mv logout ${GITHUB_WORKSPACE}
-        mv config.example.toml ${GITHUB_WORKSPACE}
+        mv $(pwd)/dist/AMDecrypt ${GITHUB_WORKSPACE}
+        mv $(pwd)/distlogin ${GITHUB_WORKSPACE}
+        mv $(pwd)/distlogout ${GITHUB_WORKSPACE}
+        mv $(pwd)/distconfig.example.toml ${GITHUB_WORKSPACE}
         ls -l ${GITHUB_WORKSPACE}
 
 
