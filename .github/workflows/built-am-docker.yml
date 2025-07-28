@@ -43,9 +43,9 @@ jobs:
         poetry run pyinstaller -F -n logout $(pwd)/tools/logout.py
         echo "当前工作目录: $(pwd)"
         mv $(pwd)/dist/AMDecrypt ${GITHUB_WORKSPACE}
-        mv $(pwd)/distlogin ${GITHUB_WORKSPACE}
-        mv $(pwd)/distlogout ${GITHUB_WORKSPACE}
-        mv $(pwd)/distconfig.example.toml ${GITHUB_WORKSPACE}
+        mv $(pwd)/dist/login ${GITHUB_WORKSPACE}
+        mv $(pwd)/dist/logout ${GITHUB_WORKSPACE}
+        mv $(pwd)/config.example.toml ${GITHUB_WORKSPACE}
         ls -l ${GITHUB_WORKSPACE}
 
 
