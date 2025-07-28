@@ -35,6 +35,7 @@ jobs:
         echo "$HOME/.local/bin" >> $GITHUB_PATH  
         
         cd AppleMusicDecrypt
+        sed -i 's/^python = "[^"]*"/python = ">=3.11,<3.14"/' pyproject.toml
         poetry add --group dev pyinstaller
         poetry install
         poetry run pyinstaller -F -n AMDecrypt main.py
