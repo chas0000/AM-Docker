@@ -85,7 +85,7 @@ jobs:
         ls -l ${GITHUB_WORKSPACE}/build-amd64
 
     - name: Upload build-amd64 artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: am-docker-build-amd64
         path: ${{ github.workspace }}/build-amd64
