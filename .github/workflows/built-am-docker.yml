@@ -14,8 +14,8 @@ jobs:
     outputs:
       artifact-path: build
     steps:
-    - name: Setup tmate session
-      uses: mxschmitt/action-tmate@v3 
+    #- name: Setup tmate session
+    #  uses: mxschmitt/action-tmate@v3 
 
     - name: Checkout code
       uses: actions/checkout@v2
