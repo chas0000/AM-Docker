@@ -79,7 +79,7 @@ jobs:
         cd Bento4/cmakebuild || exit 1
         cmake -DCMAKE_BUILD_TYPE=Release ..
         make -j$(nproc)
-        $PREFIX make install
+        #$PREFIX make install
         mv ./bin/mp4edit ${GITHUB_WORKSPACE}
         ls -l ${GITHUB_WORKSPACE}
 
